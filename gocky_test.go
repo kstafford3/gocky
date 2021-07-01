@@ -54,6 +54,18 @@ func bookFlight() Grammar {
 	return Grammar{determiner, noun, verb, adj, NP, VP}
 }
 
+func bigDog() Grammar {
+	return Grammar{
+		Production{key: "DT", nominals: []string{"the"}},
+		Production{key: "N", nominals: []string{"dog"}},
+		Production{key: "J", nominals: []string{"big", "gray", "furry"}},
+		Production{key: "NP", left: "DT", right: "N"},
+		Production{key: "NP", left: "J", right: "N"},
+		Production{key: "NP", left: "J", right: "NP"},
+		Production{key: "NP", left: "DT", right: "NP"},
+	}
+}
+
 // compareNestedStringArray tests whether two nested string arrays are equivalent
 //
 // The two nested arrays are equivalent if
@@ -150,6 +162,20 @@ func TestParses(t *testing.T) {
 					},
 					"S2": [][]string{
 						[]string{"the", "panda", "eats", "shoots", "and", "leaves"},
+					},
+				},
+			},
+		},
+		{
+			grammar: bigDog(),
+			sentence: "the big gray furry dog",
+			expectedParseRepresentations: []map[string][][]string{
+				map[string][][]string{
+					"NP": [][]string{
+						[]string{"furry", "dog"},
+						[]string{"gray", "furry", "dog"},
+						[]string{"big", "gray", "furry", "dog"},
+						[]string{"the", "big", "gray", "furry", "dog"},
 					},
 				},
 			},

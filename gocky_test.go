@@ -55,14 +55,14 @@ func bookFlight() Grammar {
 }
 
 func bigDog() Grammar {
-	return Grammar{
-		Production{key: "DT", nominals: []string{"the"}},
+	return Grammar {
 		Production{key: "N", nominals: []string{"dog"}},
+		Production{key: "DT", nominals: []string{"the"}},
 		Production{key: "J", nominals: []string{"big", "gray", "furry"}},
-		Production{key: "NP", left: "DT", right: "N"},
-		Production{key: "NP", left: "J", right: "N"},
-		Production{key: "NP", left: "J", right: "NP"},
-		Production{key: "NP", left: "DT", right: "NP"},
+		Production{key: "N", left: "DT", right: "N"},
+		Production{key: "N", left: "J", right: "N"},
+		Production{key: "N", left: "J", right: "NP"},
+		Production{key: "N", left: "DT", right: "NP"},
 	}
 }
 
@@ -171,7 +171,8 @@ func TestParses(t *testing.T) {
 			sentence: "the big gray furry dog",
 			expectedParseRepresentations: []map[string][][]string{
 				map[string][][]string{
-					"NP": [][]string{
+					"N": [][]string{
+						[]string{"dog"},
 						[]string{"furry", "dog"},
 						[]string{"gray", "furry", "dog"},
 						[]string{"big", "gray", "furry", "dog"},

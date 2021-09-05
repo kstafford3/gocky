@@ -1,8 +1,11 @@
 package gocky
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
-func TestProductionTerminals(t *testing.T) {
+func TestParseProductionTerminals(t *testing.T) {
 	type test struct {
 		name                      string
 		parse                     *Parse
@@ -39,9 +42,9 @@ func TestProductionTerminals(t *testing.T) {
 			parse:            eatsShootsAndLeaves,
 			targetProduction: "V",
 			expectedTerminalSequences: [][]string{
-				[]string{"eats"},
-				[]string{"shoots"},
-				[]string{"leaves"},
+				{"eats"},
+				{"shoots"},
+				{"leaves"},
 			},
 		},
 		{
@@ -49,7 +52,7 @@ func TestProductionTerminals(t *testing.T) {
 			parse:            eatsShootsAndLeaves,
 			targetProduction: "CC",
 			expectedTerminalSequences: [][]string{
-				[]string{"and"},
+				{"and"},
 			},
 		},
 		{
@@ -57,7 +60,7 @@ func TestProductionTerminals(t *testing.T) {
 			parse:            eatsShootsAndLeaves,
 			targetProduction: "CCV",
 			expectedTerminalSequences: [][]string{
-				[]string{"and", "leaves"},
+				{"and", "leaves"},
 			},
 		},
 		{
@@ -65,7 +68,7 @@ func TestProductionTerminals(t *testing.T) {
 			parse:            eatsShootsAndLeaves,
 			targetProduction: "VP0",
 			expectedTerminalSequences: [][]string{
-				[]string{"shoots", "and", "leaves"},
+				{"shoots", "and", "leaves"},
 			},
 		},
 		{
@@ -73,29 +76,39 @@ func TestProductionTerminals(t *testing.T) {
 			parse:            eatsShootsAndLeaves,
 			targetProduction: "VP1",
 			expectedTerminalSequences: [][]string{
-				[]string{"eats", "shoots", "and", "leaves"},
+				{"eats", "shoots", "and", "leaves"},
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
 		actualTerminalSequences := testCase.parse.ProductionTerminals(testCase.targetProduction)
-		if len(actualTerminalSequences) != len(testCase.expectedTerminalSequences) {
-			t.Fatalf("(Test \"%s\"), num terminal sequences expected %d, got %d", testCase.name, len(testCase.expectedTerminalSequences), len(actualTerminalSequences))
+		if !reflect.DeepEqual(testCase.expectedTerminalSequences, actualTerminalSequences) {
+			t.Errorf("(Test \"%s\"), expected terminals %v, got %v", testCase.name, testCase.expectedTerminalSequences, actualTerminalSequences)
 		}
+	}
+}
 
-		for actualTerminalSequenceIndex, actualTerminalSequence := range actualTerminalSequences {
-			expectedTerminalSequence := testCase.expectedTerminalSequences[actualTerminalSequenceIndex]
-			if len(actualTerminalSequence) != len(expectedTerminalSequence) {
-				t.Fatalf("(Test \"%s\"), terminal sequence size expected %d, got %d", testCase.name, len(expectedTerminalSequence), len(actualTerminalSequence))
-			}
+func TestParseProductionKeys(t *testing.T) {
+	verb := &Production{key: "V", nominals: []string{"eats", "shoots", "leaves"}}
+	conjunction := &Production{key: "CC", nominals: []string{"and"}}
 
-			for actualTerminalIndex, actualTerminal := range actualTerminalSequence {
-				expectedTerminal := expectedTerminalSequence[actualTerminalIndex]
-				if actualTerminal != expectedTerminal {
-					t.Errorf("(Test \"%s\"), expected terminal %s, got %s", testCase.name, expectedTerminal, actualTerminal)
-				}
-			}
-		}
+	CCV := &Production{key: "CCV", left: "CC", right: "V"}   // and leaves
+	VP0 := &Production{key: "VP0", left: "V", right: "CCV"}  // shoots and leaves
+	VP1 := &Production{key: "VP1", left: "V", right: "VP1b"} // eats shoots and leaves
+
+	eats := &Parse{terminal: "eats", production: verb}
+	shoots := &Parse{terminal: "shoots", production: verb}
+	and := &Parse{terminal: "and", production: conjunction}
+	leaves := &Parse{terminal: "leaves", production: verb}
+
+	andLeaves := &Parse{production: CCV, left: and, right: leaves}
+	shootsAndLeaves := &Parse{production: VP0, left: shoots, right: andLeaves}
+	eatsShootsAndLeaves := &Parse{production: VP1, left: eats, right: shootsAndLeaves}
+
+	expectedProductionKeys := []string{"VP1", "V", "VP0", "V", "CCV", "CC", "V"}
+	actualProductionKeys := eatsShootsAndLeaves.ProductionKeys()
+	if !reflect.DeepEqual(expectedProductionKeys, actualProductionKeys) {
+		t.Errorf("Expected production keys %v, got %v", expectedProductionKeys, actualProductionKeys)
 	}
 }

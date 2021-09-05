@@ -1,9 +1,10 @@
 package gocky
 
 import (
+	"fmt"
+	"reflect"
 	"regexp"
 	"testing"
-	"fmt"
 )
 
 func panda() Grammar {
@@ -23,15 +24,15 @@ func panda() Grammar {
 	DN0 := Production{key: "DN0", left: "DT", right: "N"}   // the panda
 	DN1 := Production{key: "DN1", left: "DT", right: "NP0"} // the shoots and leaves
 
-	S0 := Production{key: "S0", left: "DN0", right: "V"}    // the panda eats
-	S1 := Production{key: "S1", left: "DN0", right: "VP0"}  // the panda shoots and leaves
-	S2 := Production{key: "S2", left: "DN0", right: "VP1"}  // the panda eats shoots and leaves (all verbs)
-	S3 := Production{key: "S3", left: "DN0", right: "VP2"}  // the panda eats shoots and leaves (verb eats, shoots and leaves are nouns)
+	S0 := Production{key: "S0", left: "DN0", right: "V"}   // the panda eats
+	S1 := Production{key: "S1", left: "DN0", right: "VP0"} // the panda shoots and leaves
+	S2 := Production{key: "S2", left: "DN0", right: "VP1"} // the panda eats shoots and leaves (all verbs)
+	S3 := Production{key: "S3", left: "DN0", right: "VP2"} // the panda eats shoots and leaves (verb eats, shoots and leaves are nouns)
 
-	S4 := Production{key: "S4", left: "DN1", right: "V"}    // the shoots and leaves eat
-	S5 := Production{key: "S5", left: "DN1", right: "VP0"}  // the shoots and leaves shoots and leaves
-	S6 := Production{key: "S6", left: "DN1", right: "VP1"}  // the shoots and leaves eat shoots and leaves (all verbs)
-	S7 := Production{key: "S7", left: "DN1", right: "VP2"}  // the shoots and leaves eat shoots and leaves (verb eats, shoots and leaves are nouns)
+	S4 := Production{key: "S4", left: "DN1", right: "V"}   // the shoots and leaves eat
+	S5 := Production{key: "S5", left: "DN1", right: "VP0"} // the shoots and leaves shoots and leaves
+	S6 := Production{key: "S6", left: "DN1", right: "VP1"} // the shoots and leaves eat shoots and leaves (all verbs)
+	S7 := Production{key: "S7", left: "DN1", right: "VP2"} // the shoots and leaves eat shoots and leaves (verb eats, shoots and leaves are nouns)
 
 	return Grammar{
 		determiner, noun, verb, conjunction,
@@ -47,7 +48,7 @@ func bookFlight() Grammar {
 	determiner := Production{key: "DT", nominals: []string{"the", "that", "a"}}
 	noun := Production{key: "N", nominals: []string{"book", "flight"}}
 	verb := Production{key: "V", nominals: []string{"book"}}
-	adj  := Production{key: "JJ", nominals: []string{}}
+	adj := Production{key: "JJ", nominals: []string{}}
 
 	NP := Production{key: "NP", left: "DT", right: "N"}
 	VP := Production{key: "VP", left: "V", right: "NP"}
@@ -55,7 +56,7 @@ func bookFlight() Grammar {
 }
 
 func bigDog() Grammar {
-	return Grammar {
+	return Grammar{
 		Production{key: "N", nominals: []string{"dog"}},
 		Production{key: "DT", nominals: []string{"the"}},
 		Production{key: "J", nominals: []string{"big", "gray", "furry"}},
@@ -67,34 +68,11 @@ func bigDog() Grammar {
 }
 
 // compareNestedStringArray tests whether two nested string arrays are equivalent
-//
-// The two nested arrays are equivalent if
-// the top-level arrays are the same length
-//     len(expected) == len(actual)
-// the nested arrays at the same index are the same length
-//     len(expected[i]) == len(actual[i])
-// and the nested values are thes same for the same index pair
-//     expected[i][j] == actual[i][j]
 func compareNestedStringArray(t *testing.T, name string, expected [][]string, actual [][]string) {
-	if len(expected) != len(actual) {
-		t.Errorf("%s expected length of %d, but actual length is %d", name, len(expected), len(actual))
-	}
-
-	for i := range expected {
-		if len(expected[i]) != len(actual[i]) {
-			t.Errorf("%s expected length of %d at index %d, but actual length is %d", name, len(expected[i]), i, len(actual[i]))
-		}
-	}
-
-	for i := range expected {
-		for j := range expected[i] {
-			if expected[i][j] != actual[i][j] {
-				t.Errorf("%s expected \"%s\" at index [%d, %d], but actual value is \"%s\"", name, expected[i][j], i, j, actual[i][j])
-			}
-		}
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("%s expected %v but got %v", name, expected, actual)
 	}
 }
-
 
 // TestParses parses a sentence against the provided grammar, then verifies the expected terminal productions are present in the parses.
 // We first split the sentence into component words.
@@ -105,78 +83,85 @@ func TestParses(t *testing.T) {
 	type test struct {
 		sentence                     string
 		grammar                      Grammar
+		expectedProductionKeys       [][]string
 		expectedParseRepresentations []map[string][][]string
 	}
 
 	testCases := []test{
 		{
-			grammar:  bookFlight(),
-			sentence: "book that flight",
+			grammar:                bookFlight(),
+			sentence:               "book that flight",
+			expectedProductionKeys: [][]string{{"VP", "V", "NP", "DT", "N"}},
 			expectedParseRepresentations: []map[string][][]string{
-				map[string][][]string{
-					"V":  [][]string{[]string{"book"}},
-					"N":  [][]string{[]string{"flight"}},
-					"NP": [][]string{[]string{"that", "flight"}},
-					"VP": [][]string{[]string{"book", "that", "flight"}},
-					"JJ": [][]string{},
+				{
+					"V":  {{"book"}},
+					"N":  {{"flight"}},
+					"NP": {{"that", "flight"}},
+					"VP": {{"book", "that", "flight"}},
+					"JJ": {},
 				},
 			},
 		},
 		{
 			grammar:  panda(),
 			sentence: "the panda eats shoots and leaves",
+			expectedProductionKeys: [][]string{
+				{"S3", "DN0", "DT", "N", "VP2", "V", "NP0", "N", "CCN", "CC", "N"},
+				{"S2", "DN0", "DT", "N", "VP1", "V", "VP0", "V", "CCV", "CC", "V"},
+			},
 			expectedParseRepresentations: []map[string][][]string{
-				map[string][][]string{
+				{
 					"V": [][]string{
-						[]string{"eats"},
+						{"eats"},
 					},
 					"N": [][]string{
-						[]string{"panda"},
-						[]string{"shoots"},
-						[]string{"leaves"},
+						{"panda"},
+						{"shoots"},
+						{"leaves"},
 					},
 					"DN0": [][]string{
-						[]string{"the", "panda"},
+						{"the", "panda"},
 					},
 					"NP0": [][]string{
-						[]string{"shoots", "and", "leaves"},
+						{"shoots", "and", "leaves"},
 					},
 					"VP2": [][]string{
-						[]string{"eats", "shoots", "and", "leaves"},
+						{"eats", "shoots", "and", "leaves"},
 					},
 					"S3": [][]string{
-						[]string{"the", "panda", "eats", "shoots", "and", "leaves"},
+						{"the", "panda", "eats", "shoots", "and", "leaves"},
 					},
 				},
-				map[string][][]string{
+				{
 					"V": [][]string{
-						[]string{"eats"},
-						[]string{"shoots"},
-						[]string{"leaves"},
+						{"eats"},
+						{"shoots"},
+						{"leaves"},
 					},
 					"N": [][]string{
-						[]string{"panda"},
+						{"panda"},
 					},
 					"VP1": [][]string{
-						[]string{"eats", "shoots", "and", "leaves"},
+						{"eats", "shoots", "and", "leaves"},
 					},
 					"S2": [][]string{
-						[]string{"the", "panda", "eats", "shoots", "and", "leaves"},
+						{"the", "panda", "eats", "shoots", "and", "leaves"},
 					},
 				},
 			},
 		},
 		{
-			grammar: bigDog(),
-			sentence: "the big gray furry dog",
+			grammar:                bigDog(),
+			sentence:               "the big gray furry dog",
+			expectedProductionKeys: [][]string{{"N", "DT", "N", "J", "N", "J", "N", "J", "N"}},
 			expectedParseRepresentations: []map[string][][]string{
-				map[string][][]string{
+				{
 					"N": [][]string{
-						[]string{"dog"},
-						[]string{"furry", "dog"},
-						[]string{"gray", "furry", "dog"},
-						[]string{"big", "gray", "furry", "dog"},
-						[]string{"the", "big", "gray", "furry", "dog"},
+						{"dog"},
+						{"furry", "dog"},
+						{"gray", "furry", "dog"},
+						{"big", "gray", "furry", "dog"},
+						{"the", "big", "gray", "furry", "dog"},
 					},
 				},
 			},
@@ -192,6 +177,12 @@ func TestParses(t *testing.T) {
 
 		for parseIndex, parseRepresentations := range testCase.expectedParseRepresentations {
 			actualParse := actualParses[parseIndex]
+
+			expectedProductionKeys := testCase.expectedProductionKeys[parseIndex]
+			actualProductionKeys := actualParse.ProductionKeys()
+			if !reflect.DeepEqual(expectedProductionKeys, actualProductionKeys) {
+				t.Errorf("(Test \"%s\"), expected production keys %v, but got %v", testCase.sentence, expectedProductionKeys, actualProductionKeys)
+			}
 
 			for targetProductionKey, expectedProductionTerminalSequences := range parseRepresentations {
 				actualProductionTerminalSequences := actualParse.ProductionTerminals(targetProductionKey)

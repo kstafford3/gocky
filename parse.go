@@ -30,6 +30,18 @@ func (p *Parse) Subparses(productionKey string) []*Parse {
 	return traverseToKey(p, productionKey)
 }
 
+// ProductionKeys retrieves the key of every production within the parse
+func (p *Parse) ProductionKeys() []string {
+	productionKeys := []string{p.production.key}
+	if p.left != nil {
+		productionKeys = append(productionKeys, p.left.ProductionKeys()...)
+	}
+	if p.right != nil {
+		productionKeys = append(productionKeys, p.right.ProductionKeys()...)
+	}
+	return productionKeys
+}
+
 // traverseToKey traverses the Parse tree to find component Parses that match the given production key
 func traverseToKey(node *Parse, productionKey string) []*Parse {
 	if node == nil {
